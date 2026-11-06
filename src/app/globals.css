@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+:root {
+  --cream: #f3eee6;
+  --surface: #faf7f2;
+  --ink: #1c1917;
+  --muted: #6e675f;
+  --line: #e4dcd0;
+  --clay: #8a3e3e;
+  --shadow: 0 18px 40px rgba(28, 25, 23, 0.06);
+}
+
+body {
+  background:
+    radial-gradient(900px 420px at 0% -10%, #fffaf3 0%, transparent 60%),
+    var(--cream);
+  color: var(--ink);
+  font-family: var(--font-geist), sans-serif;
+}
+
+@layer base {
+  a {
+    color: inherit;
+  }
+}
+
+.btn,
+.btn-line {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  padding: 0 1.6rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background 0.2s ease, color 0.2s ease;
+}
+
+.btn {
+  background: var(--ink);
+  color: #f7f3ec;
+  box-shadow: 0 12px 28px rgba(28, 25, 23, 0.16);
+}
+
+.btn:hover {
+  background: #000;
+}
+
+.btn-line {
+  background: #fffdf9;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+
+.btn-line:hover {
+  background: var(--ink);
+  color: #f7f3ec;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.rise {
+  animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.delay-1 { animation-delay: 70ms; }
+.delay-2 { animation-delay: 140ms; }
+
+.live-dot {
+  animation: pulse 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #efe8dc 25%, #f7f2ea 50%, #efe8dc 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pulse {
+  50% { opacity: 0.35; }
+}
+
+@keyframes shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .live-dot,
+  .skeleton {
+    animation: none;
+  }
+}

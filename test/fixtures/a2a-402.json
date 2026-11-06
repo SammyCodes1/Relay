@@ -1,0 +1,14 @@
+{
+  "x402Version": 2,
+  "error": "x-payment header is required",
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "near:mainnet",
+      "asset": "asset-from-the-402-body",
+      "amount": "2500000",
+      "payTo": "treasury-from-the-402-body",
+      "maxTimeoutSeconds": 4200
+    }
+  ]
+}
