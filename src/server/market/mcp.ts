@@ -13,8 +13,17 @@ interface OAuthFile {
 
 export function readOAuth(): OAuthFile | null {
   const file = oauthPath()
-  if (!fs.existsSync(file)) return null
-  return JSON.parse(fs.readFileSync(file, "utf8")) as OAuthFile
+  if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, "utf8")) as OAuthFile
+  const accessToken = process.env.MARKET_MCP_ACCESS_TOKEN
+  const clientId = process.env.MARKET_MCP_CLIENT_ID
+  if (!accessToken || !clientId) return null
+  const expiresAt = process.env.MARKET_MCP_EXPIRES_AT
+  return {
+    clientId,
+    accessToken,
+    refreshToken: process.env.MARKET_MCP_REFRESH_TOKEN,
+    expiresAt: expiresAt ? Number(expiresAt) : undefined,
+  }
 }
 
 function mcpDir() {
@@ -44,8 +53,12 @@ async function refreshIfNeeded(config: AppConfig, auth: OAuthFile): Promise<OAut
     refreshToken: json.refresh_token ?? auth.refreshToken,
     expiresAt: json.expires_in ? Date.now() + json.expires_in * 1000 : undefined,
   }
-  fs.mkdirSync(mcpDir(), { recursive: true })
-  fs.writeFileSync(oauthPath(), JSON.stringify(next, null, 2))
+  try {
+    fs.mkdirSync(mcpDir(), { recursive: true })
+    fs.writeFileSync(oauthPath(), JSON.stringify(next, null, 2))
+  } catch {
+    // Vercel cannot keep the refreshed token on disk. This call still uses it.
+  }
   return next
 }
 

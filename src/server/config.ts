@@ -77,5 +77,6 @@ export function oauthPath() {
 }
 
 export function mcpConnected(): boolean {
+  if (process.env.MARKET_MCP_ACCESS_TOKEN && process.env.MARKET_MCP_CLIENT_ID) return true
   return fs.existsSync(oauthPath())
 }
