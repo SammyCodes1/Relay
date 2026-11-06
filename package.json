@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fastnear/wallet": "^2.5.0",
+    "@vercel/blob": "^2.8.2",
     "near-api-js": "^7.4.0",
     "next": "16.4.5",
     "react": "19.3.0",

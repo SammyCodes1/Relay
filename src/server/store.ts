@@ -1,10 +1,41 @@
 import fs from "fs"
 import path from "path"
+import { get, list, put } from "@vercel/blob"
 import type { Run } from "../lib/types"
 
-const root = path.join(process.cwd(), "data")
+function useBlob() {
+  return Boolean(process.env.VERCEL && process.env.BLOB_READ_WRITE_TOKEN)
+}
+
+function dataRoot() {
+  if (process.env.VERCEL) return "/tmp/relay-data"
+  return path.join(process.cwd(), "data")
+}
+
+const root = dataRoot()
 const runsDir = path.join(root, "runs")
 const lockPath = path.join(root, "store.lock")
+
+function pathnameFor(id: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Unknown run")
+  return `runs/${id}.json`
+}
+
+async function readBlob(id: string): Promise<Run | null> {
+  const result = await get(pathnameFor(id), { access: "private", useCache: false })
+  if (!result || result.statusCode === 304 || !result.stream) return null
+  const text = await new Response(result.stream).text()
+  return JSON.parse(text) as Run
+}
+
+async function writeBlob(run: Run) {
+  await put(pathnameFor(run.id), JSON.stringify(run), {
+    access: "private",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+  })
+}
 
 async function ensure() {
   await fs.promises.mkdir(runsDir, { recursive: true })
@@ -46,6 +77,15 @@ function fileFor(id: string) {
 }
 
 export async function saveRun(run: Run, baseUpdatedAt?: string): Promise<boolean> {
+  if (useBlob()) {
+    if (baseUpdatedAt) {
+      const current = await readBlob(run.id)
+      if (current && current.updatedAt !== baseUpdatedAt) return false
+    }
+    run.updatedAt = new Date().toISOString()
+    await writeBlob(run)
+    return true
+  }
   return withLock(async () => {
     const file = fileFor(run.id)
     if (baseUpdatedAt && fs.existsSync(file)) {
@@ -61,6 +101,7 @@ export async function saveRun(run: Run, baseUpdatedAt?: string): Promise<boolean
 }
 
 export async function loadRun(id: string): Promise<Run | null> {
+  if (useBlob()) return readBlob(id)
   await ensure()
   const file = fileFor(id)
   if (!fs.existsSync(file)) return null
@@ -69,6 +110,17 @@ export async function loadRun(id: string): Promise<Run | null> {
 }
 
 export async function listRuns(): Promise<Run[]> {
+  if (useBlob()) {
+    const found = await list({ prefix: "runs/", limit: 100 })
+    const runs: Run[] = []
+    for (const item of found.blobs) {
+      const id = item.pathname.replace(/^runs\//, "").replace(/\.json$/, "")
+      const run = await readBlob(id)
+      if (run) runs.push(run)
+    }
+    runs.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    return runs
+  }
   await ensure()
   const names = await fs.promises.readdir(runsDir)
   const runs: Run[] = []
@@ -82,6 +134,14 @@ export async function listRuns(): Promise<Run[]> {
 }
 
 export async function updateRun(id: string, change: (run: Run) => Promise<void> | void): Promise<Run> {
+  if (useBlob()) {
+    const run = await readBlob(id)
+    if (!run) throw new Error("Unknown run")
+    await change(run)
+    run.updatedAt = new Date().toISOString()
+    await writeBlob(run)
+    return run
+  }
   return withLock(async () => {
     const file = fileFor(id)
     if (!fs.existsSync(file)) throw new Error("Unknown run")
